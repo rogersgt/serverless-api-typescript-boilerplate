@@ -1,0 +1,29 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "google",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "rules": {
+    "indent": ["error", 2],
+    "require-jsdoc": 0,
+    "object-curly-spacing": ["error", "always"],
+    "max-len": ["error", { "code": 124 }],
+    "semi": 0
+},
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "globals": {
+    "console": true,
+    "process": true,
+    "module": true,
+    "require": true,
+    "Promise": true,
+    "describe": true,
+    "Buffer": true,
+    "setTimeout": true
+  }
+}

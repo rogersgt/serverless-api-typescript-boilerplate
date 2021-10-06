@@ -1,0 +1,17 @@
+{
+  "comments": false,
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "node": "14"
+        }
+      }
+    ],
+    "@babel/preset-typescript"
+  ],
+  "plugins": [
+    "source-map-support"
+  ]
+}

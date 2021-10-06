@@ -1,0 +1,219 @@
+service: my-api
+frameworkVersion: '2'
+variablesResolutionMode: 20210326
+configValidationMode: warn
+
+plugins:
+  - serverless-webpack
+
+provider:
+  stage: ${opt:stage, 'dev'}
+  name: aws
+  eventBridge:
+    useCloudFormation: true
+  lambdaHashingVersion: 20201221
+  region: ${env:AWS_REGION, 'us-east-1'}
+  stackName: ${self:provider.stage}-${self:service}
+  logRetentionInDays: 30
+  runtime: nodejs14.x
+  timeout: 60 # seconds
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:*
+            - s3:*
+            - kms:Describe*
+            - kms:Encrypt*
+            - kms:Decrypt*
+            - kms:GenerateDataKey
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - ssm:GetParametersByPath
+          Resource:
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter${self:provider.environment.SSM_APP_PATH}
+  environment: ${self:custom.environment.${self:provider.stage}}
+
+package:
+  individually: true
+
+custom:
+  environment:
+    dev:
+      APP_NAME: ${self:service}
+      AWS_DYNAMODB_TABLE:
+        Ref: Table
+      LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+      SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
+      STAGE: ${self:provider.stage}
+      AWS_DYNAMODB_ENDPOINT: http://0.0.0.0:4566
+    prod:
+      APP_NAME: ${self:service}
+      AWS_DYNAMODB_TABLE:
+        Ref: Table
+      LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+      SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
+      STAGE: ${self:provider.stage}
+  webpack: # read by serverless-webpack
+    webpackConfig: ./webpack.config.js
+    packager: npm
+    includeModules: true # not sure why webpack-node-externals is not doing this
+
+functions:
+  api:
+    handler: src/index.api
+    events:
+      - http: '*'
+
+resources:
+  Resources:
+    Table:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: SK
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+        Tags:
+          - Key: Name
+            Value: ${self:service}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        SSESpecification:
+          SSEEnabled: true
+          SSEType: KMS
+        # PointInTimeRecoverySpecification:
+        #   PointInTimeRecoveryEnabled: true
+
+    WriteCapacityScalableTarget:
+      Type: AWS::ApplicationAutoScaling::ScalableTarget
+      Properties:
+        MaxCapacity: 100
+        MinCapacity: 1
+        ResourceId:
+          Fn::Join:
+            - /
+            - - table
+              - !Ref Table
+        RoleARN:
+          Fn::GetAtt:
+            - ScalingRole
+            - Arn
+        ScalableDimension: dynamodb:table:WriteCapacityUnits
+        ServiceNamespace: dynamodb
+
+    ReadCapacityScalableTarget:
+      Type: AWS::ApplicationAutoScaling::ScalableTarget
+      Properties:
+        MaxCapacity: 100
+        MinCapacity: 1
+        ResourceId:
+          Fn::Join:
+            - /
+            - - table
+              - !Ref Table
+        RoleARN:
+          Fn::GetAtt:
+            - ScalingRole
+            - Arn
+        ScalableDimension: dynamodb:table:ReadCapacityUnits
+        ServiceNamespace: dynamodb
+
+    ScalingRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - application-autoscaling.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Path: '/'
+        Policies:
+          -
+            PolicyName:
+              Fn::Join:
+                - '-'
+                - - !Ref Table
+                  - scaling-role
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -
+                  Effect: Allow
+                  Action:
+                    - dynamodb:DescribeTable
+                    - dynamodb:UpdateTable
+                    - cloudwatch:PutMetricAlarm
+                    - cloudwatch:DescribeAlarms
+                    - cloudwatch:GetMetricStatistics
+                    - cloudwatch:SetAlarmState
+                    - cloudwatch:DeleteAlarms
+                  Resource: '*'
+
+    WriteScalingPolicy:
+      Type: AWS::ApplicationAutoScaling::ScalingPolicy
+      Properties:
+        PolicyName: WriteAutoScalingPolicy
+        PolicyType: TargetTrackingScaling
+        ScalingTargetId: !Ref WriteCapacityScalableTarget
+        TargetTrackingScalingPolicyConfiguration:
+          TargetValue: 30.0
+          ScaleInCooldown: 60
+          ScaleOutCooldown: 60
+          PredefinedMetricSpecification:
+            PredefinedMetricType: DynamoDBWriteCapacityUtilization
+
+    ReadScalingPolicy:
+      Type: AWS::ApplicationAutoScaling::ScalingPolicy
+      Properties:
+        PolicyName: ReadutoScalingPolicy
+        PolicyType: TargetTrackingScaling
+        ScalingTargetId: !Ref ReadCapacityScalableTarget
+        TargetTrackingScalingPolicyConfiguration:
+          TargetValue: 30.0
+          ScaleInCooldown: 60
+          ScaleOutCooldown: 60
+          PredefinedMetricSpecification:
+            PredefinedMetricType: DynamoDBReadCapacityUtilization
+
+    CustomDomain:
+      Type: AWS::ApiGatewayV2::DomainName
+      Properties: 
+        DomainName: ${ssm:/deploy/${self:service}/DOMAIN_NAME}
+        DomainNameConfigurations: 
+          - CertificateArn: ${ssm:/deploy/${self:service}/ACM_CERTIFICATE}
+            SecurityPolicy: TLS_1_2
+            EndpointType: REGIONAL
+
+    ApiMapping:
+      Type: AWS::ApiGatewayV2::ApiMapping
+      Properties: 
+        ApiId: !Ref HttpApi
+        DomainName: !Ref CustomDomain
+        Stage: !Ref HttpApiStage
+
+    DnsRecord:
+      Type: AWS::Route53::RecordSet
+      Properties:
+        AliasTarget:
+          DNSName:
+            Fn::GetAtt:
+              - CustomDomain
+              - RegionalDomainName
+          HostedZoneId:
+            Fn::GetAtt:
+              - CustomDomain
+              - RegionalHostedZoneId
+          EvaluateTargetHealth: false
+        HostedZoneName: ${ssm:/deploy/${self:service}/HOSTED_ZONE}
+        Name: !Sub '${CustomDomain}.'
+        Type: A
