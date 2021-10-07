@@ -1,4 +1,4 @@
-import User from '../models/UserModel';
+import { User } from '../models/UserModel';
 
 export function getUsers(query) {
   return User.prototype.query(query);

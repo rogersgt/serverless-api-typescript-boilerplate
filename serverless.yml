@@ -1,10 +1,11 @@
-service: my-api
+service: serverless-api-typescript-boilerplate
 frameworkVersion: '2'
 variablesResolutionMode: 20210326
 configValidationMode: warn
 
 plugins:
   - serverless-webpack
+  - serverless-offline
 
 provider:
   stage: ${opt:stage, 'dev'}
@@ -56,6 +57,10 @@ custom:
       LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
       SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
       STAGE: ${self:provider.stage}
+  serverless-offline:
+    host: 0.0.0.0
+    httpPort: ${env:PORT, 6000}
+    noPrependStageInUrl: true
   webpack: # read by serverless-webpack
     webpackConfig: ./webpack.config.js
     packager: npm
@@ -188,9 +193,9 @@ resources:
     CustomDomain:
       Type: AWS::ApiGatewayV2::DomainName
       Properties: 
-        DomainName: ${ssm:/deploy/${self:service}/DOMAIN_NAME}
+        DomainName: ${ssm:/deploy/${self:service}/DOMAIN_NAME, ''}
         DomainNameConfigurations: 
-          - CertificateArn: ${ssm:/deploy/${self:service}/ACM_CERTIFICATE}
+          - CertificateArn: ${ssm:/deploy/${self:service}/ACM_CERTIFICATE, ''}
             SecurityPolicy: TLS_1_2
             EndpointType: REGIONAL
 
@@ -214,6 +219,6 @@ resources:
               - CustomDomain
               - RegionalHostedZoneId
           EvaluateTargetHealth: false
-        HostedZoneName: ${ssm:/deploy/${self:service}/HOSTED_ZONE}
+        HostedZoneName: ${ssm:/deploy/${self:service}/HOSTED_ZONE, ''}
         Name: !Sub '${CustomDomain}.'
         Type: A

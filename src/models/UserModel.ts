@@ -12,7 +12,7 @@ if (AWS_DYNAMODB_ENDPOINT) {
 
 const HASH_KEY = 'User';
 
-interface UserInterface {
+export interface UserInterface {
   email: string,
   password?: string,
 }
@@ -31,7 +31,7 @@ const UserDynamooseModel = dynamoose.model(AWS_DYNAMODB_TABLE, {
   create: STAGE.toLowerCase() === 'local',
 });
 
-export default class User implements UserInterface {
+export class User implements UserInterface {
   email: string
   password?: string
 

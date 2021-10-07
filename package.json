@@ -1,24 +1,22 @@
 {
-  "name": "ssm-manager-tool",
+  "name": "serverless-api-typescript-boilerplate",
   "version": "1.0.0",
-  "description": "Backup and Restore SSM Parameters",
+  "description": "Serverless Typescript API",
   "main": "src/index.js",
   "scripts": {
     "build": "npm install && serverless package",
     "deploy": "npm install && serverless deploy",
     "test": "eslint src && npm run test:unit",
     "test:unit": "mocha -r test/babel-register.js ./test/unit/*.spec.js",
-    "local:restorePath": "serverless invoke local -f restorePath -p test/events/lambda.invokeRestoreRecursivePath.json",
-    "local:registerBackup": "serverless invoke local -f registerBackup -p test/events/ssm.parameterChange.json"
+    "start": "serverless offline start"
   },
-  "author": "Lasso Workforce",
   "license": "UNLICENSED",
   "dependencies": {
-    "body-parser": "^1.19.0",
-    "dynamoose": "^2.8.2",
-    "express": "^4.17.1",
+    "body-parser": "1.19.0",
+    "dynamoose": "2.8.2",
+    "express": "4.17.1",
     "moment": "2.29.1",
-    "serverless-http": "^2.7.0",
+    "serverless-http": "2.7.0",
     "source-map-support": "0.5.20",
     "winston": "3.3.3"
   },
@@ -29,6 +27,7 @@
     "@babel/preset-typescript": "7.15.0",
     "@babel/register": "7.15.3",
     "@types/chai": "4.2.22",
+    "@types/express": "^4.17.13",
     "@types/mocha": "9.0.0",
     "@types/node": "16.9.6",
     "@typescript-eslint/eslint-plugin": "4.31.2",

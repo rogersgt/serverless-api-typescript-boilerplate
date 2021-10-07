@@ -1,4 +1,4 @@
-# my-api
+# serverless-api-typescript-boilerplate
 
 ## Config
 SSM Parameters
@@ -19,3 +19,10 @@ Configuration options used by serverless to deploy the application in AWS, prefi
 
 ### local environment variables only
 - `AWS_DYNAMODB_ENDPOINT`
+
+## Local Development
+```bash
+npm install
+docker-compose up -d
+npm start
+```
