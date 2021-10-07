@@ -6,10 +6,10 @@ import logger from '../logger';
 import routes from './routes';
 
 /**
- * 
+ *
  * @param {Request} req
  * @param {Response} res
- * @returns {Response}
+ * @return {Response}
  */
 export default async function router(req, res) {
   const {
@@ -30,7 +30,7 @@ export default async function router(req, res) {
 
   const urlPartArray = url
     .split('?')
-    .filter(str => !!str); // filter out undefined
+    .filter((str) => !!str); // filter out undefined
 
   const baseUrl = urlPartArray[0];
   const route = routes
@@ -50,4 +50,4 @@ export default async function router(req, res) {
   }
 
   return res.sendStatus(404);
-};
+}

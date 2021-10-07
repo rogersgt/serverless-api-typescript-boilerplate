@@ -10,7 +10,8 @@
     "require-jsdoc": 0,
     "object-curly-spacing": ["error", "always"],
     "max-len": ["error", { "code": 124 }],
-    "semi": 0
+    "semi": 0,
+    "no-invalid-this": 0
 },
   "parser": "@typescript-eslint/parser",
   "plugins": [

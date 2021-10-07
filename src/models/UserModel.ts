@@ -46,14 +46,14 @@ export class User implements UserInterface {
       ...queryOptions && { SK: userProps.email },
     };
     if (queryOptions) {
-      return this.model.query(query).exec;
+      return UserDynamooseModel.query(query).exec;
     }
 
-    return this.model.scan().exec();
+    return UserDynamooseModel.scan().exec();
   }
 
   save = () => {
-    const newUser = new this.model({
+    const newUser = new UserDynamooseModel({
       PK: getHashKey(),
       SK: this.email,
       ...this.password && { password: this.password },
@@ -66,7 +66,7 @@ export class User implements UserInterface {
       PK: getHashKey(),
       SK: userProps.email,
     };
-    return this.model.delete(deleteQuery);
+    return UserDynamooseModel.delete(deleteQuery);
   }
 
   constructor(options:UserInterface) {
