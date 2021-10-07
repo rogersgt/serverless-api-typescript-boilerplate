@@ -17,7 +17,7 @@ provider:
   stackName: ${self:provider.stage}-${self:service}
   logRetentionInDays: 30
   runtime: nodejs14.x
-  timeout: 60 # seconds
+  timeout: 20 # seconds
   iam:
     role:
       statements:
@@ -44,8 +44,7 @@ custom:
   environment:
     dev:
       APP_NAME: ${self:service}
-      AWS_DYNAMODB_TABLE:
-        Ref: Table
+      AWS_DYNAMODB_TABLE: ${self:service}
       LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
       SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
       STAGE: ${self:provider.stage}
@@ -59,7 +58,7 @@ custom:
       STAGE: ${self:provider.stage}
   serverless-offline:
     host: 0.0.0.0
-    httpPort: ${env:PORT, 6000}
+    httpPort: ${env:PORT, 5000}
     noPrependStageInUrl: true
   webpack: # read by serverless-webpack
     webpackConfig: ./webpack.config.js
@@ -70,7 +69,7 @@ functions:
   api:
     handler: src/index.api
     events:
-      - http: '*'
+      - httpApi: '*'
 
 resources:
   Resources:

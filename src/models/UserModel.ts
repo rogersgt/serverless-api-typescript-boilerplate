@@ -11,13 +11,14 @@ if (AWS_DYNAMODB_ENDPOINT) {
 }
 
 const HASH_KEY = 'User';
+export const getHashKey = () => HASH_KEY;
 
 export interface UserInterface {
   email: string,
   password?: string,
 }
 
-const UserDynamooseModel = dynamoose.model(AWS_DYNAMODB_TABLE, {
+export const UserDynamooseModel = dynamoose.model(AWS_DYNAMODB_TABLE, {
   PK: {
     type: String,
     hashKey: true,
@@ -28,7 +29,7 @@ const UserDynamooseModel = dynamoose.model(AWS_DYNAMODB_TABLE, {
   },
   password: String,
 }, {
-  create: STAGE.toLowerCase() === 'local',
+  create: STAGE.toLowerCase() === 'dev',
 });
 
 export class User implements UserInterface {
@@ -36,13 +37,12 @@ export class User implements UserInterface {
   password?: string
 
   model = UserDynamooseModel
-  getHashKey = () => HASH_KEY
 
   query = (userProps?: UserInterface) => {
     const queryOptions = !!userProps;
 
     const query = {
-      PK: this.getHashKey(),
+      PK: getHashKey(),
       ...queryOptions && { SK: userProps.email },
     };
     if (queryOptions) {
@@ -52,18 +52,18 @@ export class User implements UserInterface {
     return this.model.scan().exec();
   }
 
-  save = (userProps: UserInterface) => {
+  save = () => {
     const newUser = new this.model({
-      PK: this.getHashKey(),
-      SK: userProps.email,
-      ...userProps.password && { password: userProps.password },
+      PK: getHashKey(),
+      SK: this.email,
+      ...this.password && { password: this.password },
     });
     return newUser.save();
   }
 
   delete = (userProps: UserInterface) => {
     const deleteQuery = {
-      PK: this.getHashKey(),
+      PK: getHashKey(),
       SK: userProps.email,
     };
     return this.model.delete(deleteQuery);
