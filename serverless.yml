@@ -41,21 +41,20 @@ package:
   individually: true
 
 custom:
+  defaultEnvVars: &defaultEnvVars
+    APP_NAME: ${self:service}
+    SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
+    LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+    STAGE: ${self:provider.stage}
   environment:
     dev:
-      APP_NAME: ${self:service}
+      <<: *defaultEnvVars
       AWS_DYNAMODB_TABLE: ${self:service}
-      LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
-      SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
-      STAGE: ${self:provider.stage}
       AWS_DYNAMODB_ENDPOINT: http://0.0.0.0:4566
     prod:
-      APP_NAME: ${self:service}
+      <<: *defaultEnvVars
       AWS_DYNAMODB_TABLE:
         Ref: Table
-      LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
-      SSM_APP_PATH: /app/${self:provider.stage}/${self:service}
-      STAGE: ${self:provider.stage}
   serverless-offline:
     host: 0.0.0.0
     httpPort: ${env:PORT, 5000}

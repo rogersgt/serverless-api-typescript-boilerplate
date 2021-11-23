@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build": "npm install && serverless package",
-    "deploy": "npm install && serverless deploy",
+    "deploy": "npm install && serverless deploy --stage prod",
     "test": "eslint src && npm run test:unit",
     "test:unit": "mocha -r test/babel-register.js ./test/unit/*.spec.js",
     "start": "serverless offline start"
