@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { it } from 'mocha';
 
 describe('test', () => {
   it('Should work', () => {

@@ -1,0 +1,4 @@
+webpack.config.js
+.serverless
+node_modules
+test/babel-register.js
