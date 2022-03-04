@@ -1,4 +1,6 @@
 import dynamoose from 'dynamoose';
+import { Document } from 'dynamoose/dist/Document';
+import logger from '../logger';
 
 const {
   AWS_DYNAMODB_ENDPOINT,
@@ -11,7 +13,7 @@ if (AWS_DYNAMODB_ENDPOINT) {
 }
 
 const HASH_KEY = 'User';
-export const getHashKey = () => HASH_KEY;
+export const getHashKey = (): string => HASH_KEY;
 
 export interface UserInterface {
   email: string,
@@ -27,18 +29,15 @@ export const UserDynamooseModel = dynamoose.model(AWS_DYNAMODB_TABLE, {
     type: String,
     rangeKey: true,
   },
-  password: String,
 }, {
   create: STAGE.toLowerCase() === 'dev',
 });
 
 export class User implements UserInterface {
   email: string
-  password?: string
-
   model = UserDynamooseModel
 
-  query = (userProps?: UserInterface) => {
+  query = (userProps?: UserInterface): Promise<Document|Document[]> => {
     const queryOptions = !!userProps;
 
     const query = {
@@ -46,22 +45,23 @@ export class User implements UserInterface {
       ...queryOptions && { SK: userProps.email },
     };
     if (queryOptions) {
-      return UserDynamooseModel.query(query).exec;
+      return UserDynamooseModel.query(query).exec();
     }
 
     return UserDynamooseModel.scan().exec();
   }
 
-  save = () => {
-    const newUser = new UserDynamooseModel({
+  save = (): Promise<Document> => {
+    const newUserOptions = {
       PK: getHashKey(),
       SK: this.email,
-      ...this.password && { password: this.password },
-    });
+    };
+    logger.debug({ newUserOptions });
+    const newUser = new UserDynamooseModel(newUserOptions);
     return newUser.save();
   }
 
-  delete = (userProps: UserInterface) => {
+  delete = (userProps: UserInterface): Promise<void> => {
     const deleteQuery = {
       PK: getHashKey(),
       SK: userProps.email,
@@ -71,6 +71,5 @@ export class User implements UserInterface {
 
   constructor(options:UserInterface) {
     this.email = options.email;
-    if (options.password) this.password = options.password;
   }
 }

@@ -1,11 +1,12 @@
 service: serverless-api-typescript-boilerplate
-frameworkVersion: '2'
+frameworkVersion: '3'
 variablesResolutionMode: 20210326
 configValidationMode: warn
 
 plugins:
   - serverless-webpack
   - serverless-offline
+  - serverless-domain-manager
 
 provider:
   stage: ${opt:stage, 'dev'}
@@ -63,6 +64,16 @@ custom:
     webpackConfig: ./webpack.config.js
     packager: npm
     includeModules: true # not sure why webpack-node-externals is not doing this
+  customDomain:
+    apiType: http
+    domainName: ${ssm:/deploy/${self:service}/DOMAIN_NAME, ''}
+    stage: ${self:provider.stage}
+    basePath: ''
+    certificateArn: ${ssm:/deploy/${self:service}/ACM_CERTIFICATE, ''}
+    createRoute53Record: true
+    endpointType: 'regional'
+    securityPolicy: tls_1_2
+    autoDomain: true
 
 functions:
   api:
@@ -171,7 +182,8 @@ resources:
       Properties:
         PolicyName: WriteAutoScalingPolicy
         PolicyType: TargetTrackingScaling
-        ScalingTargetId: !Ref WriteCapacityScalableTarget
+        ScalingTargetId:
+          Ref: WriteCapacityScalableTarget
         TargetTrackingScalingPolicyConfiguration:
           TargetValue: 30.0
           ScaleInCooldown: 60
@@ -184,43 +196,11 @@ resources:
       Properties:
         PolicyName: ReadutoScalingPolicy
         PolicyType: TargetTrackingScaling
-        ScalingTargetId: !Ref ReadCapacityScalableTarget
+        ScalingTargetId:
+          Ref: ReadCapacityScalableTarget
         TargetTrackingScalingPolicyConfiguration:
           TargetValue: 30.0
           ScaleInCooldown: 60
           ScaleOutCooldown: 60
           PredefinedMetricSpecification:
             PredefinedMetricType: DynamoDBReadCapacityUtilization
-
-    CustomDomain:
-      Type: AWS::ApiGatewayV2::DomainName
-      Properties: 
-        DomainName: ${ssm:/deploy/${self:service}/DOMAIN_NAME, ''}
-        DomainNameConfigurations: 
-          - CertificateArn: ${ssm:/deploy/${self:service}/ACM_CERTIFICATE, ''}
-            SecurityPolicy: TLS_1_2
-            EndpointType: REGIONAL
-
-    ApiMapping:
-      Type: AWS::ApiGatewayV2::ApiMapping
-      Properties: 
-        ApiId: !Ref HttpApi
-        DomainName: !Ref CustomDomain
-        Stage: !Ref HttpApiStage
-
-    DnsRecord:
-      Type: AWS::Route53::RecordSet
-      Properties:
-        AliasTarget:
-          DNSName:
-            Fn::GetAtt:
-              - CustomDomain
-              - RegionalDomainName
-          HostedZoneId:
-            Fn::GetAtt:
-              - CustomDomain
-              - RegionalHostedZoneId
-          EvaluateTargetHealth: false
-        HostedZoneName: ${ssm:/deploy/${self:service}/HOSTED_ZONE, ''}
-        Name: !Sub '${CustomDomain}.'
-        Type: A

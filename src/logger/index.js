@@ -1,6 +1,5 @@
 import bunyan from 'bunyan';
 
-/* eslint-disable no-console */
 const {
   APP_NAME,
   LOG_LEVEL = 'info',

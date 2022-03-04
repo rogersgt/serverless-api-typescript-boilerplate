@@ -14,7 +14,8 @@
       "node",
       "chai",
       "mocha",
-      "express"
+      "express",
+      "bunyan"
     ]
   },
   "include": ["src/**/*"],
